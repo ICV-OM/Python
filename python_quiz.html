@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>اختبار أساسيات بايثون</title>
+
+<!-- ════════════════════════════════════════════════════════════════
+     إعداد قاعدة البيانات والبريد — عدّل القيم التالية فقط
+     ════════════════════════════════════════════════════════════════
+     1) أنشئ جدولاً في Supabase بهذا الأمر (SQL Editor):
+
+     create table quiz_results (
+       id uuid default gen_random_uuid() primary key,
+       full_name text,
+       email text,
+       score int,
+       total int,
+       percentage int,
+       level text,
+       time_taken int,
+       answers jsonb,
+       ai_report text,
+       created_at timestamptz default now()
+     );
+     alter table quiz_results enable row level security;
+     create policy "allow inserts" on quiz_results
+       for insert to anon with check (true);
+
+     2) ضع رابط ومفتاح المشروع (anon public) أدناه.
+     3) للبريد: ضع بريد المشرف في FORMSUBMIT_EMAIL، وأول مرة
+        فعّل FormSubmit بإرسال أي إدخال ثم الضغط على رابط التفعيل.
+     ════════════════════════════════════════════════════════════════ -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Reem+Kufi:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#0b1020;
+  --bg-2:#0f1629;
+  --panel:#131c33;
+  --panel-2:#0d1426;
+  --line:#243150;
+  --line-soft:#1b2742;
+  --ink:#e8edf7;
+  --ink-soft:#9fb0d0;
+  --ink-faint:#6b7ba3;
+  --py-blue:#4b8bf4;
+  --py-yellow:#ffd43b;
+  --emerald:#22c98b;
+  --emerald-deep:#0e8f63;
+  --red:#ff6b6b;
+  --gold:#f6c453;
+  --shadow:0 18px 50px -20px rgba(0,0,0,.7);
+  --radius:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Tajawal',sans-serif;
+  background:
+    radial-gradient(1200px 700px at 85% -10%, rgba(75,139,244,.10), transparent 60%),
+    radial-gradient(1000px 600px at 0% 110%, rgba(34,201,139,.10), transparent 55%),
+    var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:'JetBrains Mono',monospace;direction:ltr;unicode-bidi:embed}
+.wrap{max-width:920px;margin:0 auto;padding:26px 18px 60px}
+
+/* ── Top brand bar (terminal style) ── */
+.topbar{
+  display:flex;align-items:center;gap:12px;
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:12px 16px;margin-bottom:22px;
+  box-shadow:var(--shadow);
+}
+.dots{display:flex;gap:7px;margin-inline-start:2px}
+.dots i{width:12px;height:12px;border-radius:50%;display:block}
+.dots i:nth-child(1){background:#ff5f57}
+.dots i:nth-child(2){background:#febc2e}
+.dots i:nth-child(3){background:#28c840}
+.term-title{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-faint);direction:ltr}
+.term-title b{color:var(--py-yellow);font-weight:700}
+.brand{margin-inline-start:auto;display:flex;align-items:center;gap:10px;font-family:'Reem Kufi',sans-serif;font-weight:700;font-size:15px;color:var(--ink-soft)}
+.brand .py{
+  width:26px;height:26px;border-radius:7px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--py-blue),#2d6fe0);
+  color:#fff;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;
+}
+
+/* ── Cards ── */
+.card{
+  background:linear-gradient(180deg,var(--panel),var(--panel-2));
+  border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:30px;
+}
+.eyebrow{
+  font-family:'JetBrains Mono',monospace;direction:ltr;font-size:12px;
+  letter-spacing:.5px;color:var(--emerald);text-transform:uppercase;margin-bottom:10px;
+}
+h1{font-family:'Reem Kufi',sans-serif;font-weight:700;font-size:30px;line-height:1.3;margin-bottom:6px}
+h2{font-family:'Reem Kufi',sans-serif;font-weight:600;font-size:22px;margin-bottom:14px}
+.sub{color:var(--ink-soft);font-size:15.5px;margin-bottom:24px}
+
+/* ── Instructions list ── */
+.rules{list-style:none;display:grid;gap:12px;margin:6px 0 26px}
+.rules li{
+  display:flex;gap:14px;align-items:flex-start;
+  background:var(--panel-2);border:1px solid var(--line-soft);
+  border-radius:12px;padding:14px 16px;
+}
+.rules .ico{
+  flex:0 0 38px;height:38px;border-radius:10px;display:grid;place-items:center;
+  background:rgba(34,201,139,.12);color:var(--emerald);font-size:18px;font-weight:700;
+}
+.rules .ico.blue{background:rgba(75,139,244,.14);color:var(--py-blue)}
+.rules .ico.gold{background:rgba(246,196,83,.14);color:var(--gold)}
+.rules b{display:block;font-size:15.5px;color:var(--ink)}
+.rules span{font-size:13.5px;color:var(--ink-soft)}
+
+/* ── Buttons ── */
+.btn{
+  appearance:none;border:none;cursor:pointer;font-family:'Tajawal',sans-serif;
+  font-weight:700;font-size:16px;border-radius:12px;padding:14px 26px;
+  display:inline-flex;align-items:center;gap:10px;transition:.18s transform,.18s box-shadow,.18s background;
+}
+.btn:active{transform:translateY(1px)}
+.btn-primary{
+  background:linear-gradient(135deg,var(--emerald),var(--emerald-deep));
+  color:#06281c;box-shadow:0 12px 26px -10px rgba(34,201,139,.6);
+}
+.btn-primary:hover{box-shadow:0 16px 30px -10px rgba(34,201,139,.75)}
+.btn-ghost{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+.btn-ghost:hover{border-color:var(--py-blue);color:#fff}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#e0a93a);color:#3a2a06}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+
+/* ── Inputs ── */
+.field{margin-bottom:18px}
+.field label{display:block;font-size:14px;color:var(--ink-soft);margin-bottom:8px;font-weight:500}
+.field input{
+  width:100%;font-family:'Tajawal',sans-serif;font-size:16px;color:var(--ink);
+  background:var(--panel-2);border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px;outline:none;transition:.18s border,.18s box-shadow;
+}
+.field input:focus{border-color:var(--emerald);box-shadow:0 0 0 3px rgba(34,201,139,.15)}
+.field input::placeholder{color:var(--ink-faint)}
+
+/* ── Quiz header (HUD) ── */
+.hud{
+  position:sticky;top:10px;z-index:20;
+  display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:12px 16px;margin-bottom:18px;box-shadow:var(--shadow);
+}
+.hud .who{display:flex;align-items:center;gap:10px;font-weight:700}
+.hud .who .av{
+  width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--py-blue),var(--emerald));color:#fff;font-weight:800;font-size:15px;
+}
+.chip{
+  display:flex;align-items:center;gap:8px;background:var(--panel-2);
+  border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-weight:700;font-size:14px;
+}
+.chip .lbl{color:var(--ink-faint);font-weight:500;font-size:12.5px}
+.chip.timer{font-family:'JetBrains Mono',monospace;direction:ltr}
+.chip.timer.warn{border-color:var(--red);color:var(--red);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.55}}
+.hud .spacer{margin-inline-start:auto}
+
+/* progress bar */
+.pbar{height:7px;background:var(--line-soft);border-radius:99px;overflow:hidden;margin-bottom:20px}
+.pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--py-blue),var(--emerald));transition:.3s width}
+
+.opt.disabled{cursor:default;pointer-events:none}
+.opt.faded{opacity:.5}
+
+/* feedback box */
+.feedback{
+  margin-top:18px;border-radius:12px;padding:15px 18px;font-size:15px;line-height:1.8;
+  border:1px solid var(--line);animation:fbIn .25s ease;
+}
+@keyframes fbIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.feedback .head{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16px;margin-bottom:4px}
+.feedback.ok{background:rgba(34,201,139,.10);border-color:rgba(34,201,139,.4)}
+.feedback.ok .head{color:var(--emerald)}
+.feedback.no{background:rgba(255,107,107,.09);border-color:rgba(255,107,107,.4)}
+.feedback.no .head{color:var(--red)}
+.feedback .exp{color:var(--ink-soft);font-size:14.5px}
+.feedback .exp b{color:var(--ink)}
+
+/* ── Question ── */
+.qnum{font-family:'JetBrains Mono',monospace;direction:ltr;color:var(--emerald);font-size:13px;font-weight:600;margin-bottom:8px}
+.qtext{font-size:19px;font-weight:700;margin-bottom:6px;line-height:1.6}
+.code{
+  font-family:'JetBrains Mono',monospace;direction:ltr;text-align:left;
+  background:#0a0f1f;border:1px solid var(--line);border-inline-start:3px solid var(--py-yellow);
+  border-radius:10px;padding:12px 14px;margin:14px 0 18px;font-size:14.5px;color:#e6edff;overflow-x:auto;
+}
+.opts{display:grid;gap:11px;margin-top:6px}
+.opt{
+  display:flex;align-items:center;gap:14px;cursor:pointer;
+  background:var(--panel-2);border:1.5px solid var(--line);border-radius:12px;
+  padding:14px 16px;transition:.15s all;font-size:16px;
+}
+.opt:hover{border-color:var(--py-blue);transform:translateX(-2px)}
+.opt .key{
+  flex:0 0 30px;height:30px;border-radius:8px;display:grid;place-items:center;
+  background:var(--line-soft);color:var(--ink-soft);font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;
+}
+.opt .otext{flex:1}
+.opt .otext.mono{direction:ltr;text-align:left;font-size:15px}
+.opt.sel{border-color:var(--emerald);background:rgba(34,201,139,.10)}
+.opt.sel .key{background:var(--emerald);color:#06281c}
+
+/* review (result) states */
+.opt.correct{border-color:var(--emerald);background:rgba(34,201,139,.12)}
+.opt.correct .key{background:var(--emerald);color:#06281c}
+.opt.wrong{border-color:var(--red);background:rgba(255,107,107,.10)}
+.opt.wrong .key{background:var(--red);color:#fff}
+
+/* ── Result / report ── */
+.score-hero{display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.ring{position:relative;width:140px;height:140px;flex:0 0 140px}
+.ring svg{transform:rotate(-90deg)}
+.ring .val{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.ring .val b{font-size:34px;font-family:'JetBrains Mono',monospace;line-height:1}
+.ring .val span{font-size:12px;color:var(--ink-soft)}
+.score-meta{flex:1;min-width:220px}
+.level-badge{
+  display:inline-flex;align-items:center;gap:9px;font-weight:800;font-size:17px;
+  padding:9px 16px;border-radius:99px;margin-bottom:8px;
+}
+.report-box{
+  background:var(--panel-2);border:1px solid var(--line);border-radius:14px;
+  padding:22px;margin:22px 0;font-size:15.5px;line-height:1.9;white-space:pre-wrap;
+}
+.report-box h3{font-family:'Reem Kufi',sans-serif;color:var(--emerald);margin-bottom:10px;font-size:18px}
+.ai-tag{
+  display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;direction:ltr;
+  font-size:11.5px;color:var(--py-yellow);background:rgba(255,212,59,.10);
+  border:1px solid rgba(255,212,59,.3);border-radius:99px;padding:4px 12px;margin-bottom:14px;
+}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.stat{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+.stat b{display:block;font-size:26px;font-family:'JetBrains Mono',monospace;color:var(--ink)}
+.stat span{font-size:12.5px;color:var(--ink-soft)}
+.status-line{font-size:13.5px;color:var(--ink-faint);text-align:center;margin-top:6px;min-height:20px}
+
+.loader{display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.hidden{display:none!important}
+.center{text-align:center}
+.foot{margin-top:26px;text-align:center;color:var(--ink-faint);font-size:12.5px;font-family:'JetBrains Mono',monospace;direction:ltr}
+
+@media(max-width:560px){
+  .card{padding:22px 18px}
+  h1{font-size:24px}
+  .hud{gap:8px;padding:10px}
+  .chip{padding:7px 10px;font-size:13px}
+}
+
+/* ── Print ── */
+@media print{
+  body{background:#fff;color:#111}
+  .no-print{display:none!important}
+  .card,.report-box,.stat,.report-area{background:#fff!important;border-color:#ccc!important;box-shadow:none!important;color:#111!important}
+  .report-box h3,.eyebrow{color:#0e8f63!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Terminal brand bar -->
+  <div class="topbar no-print">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <div class="term-title">python3 <b>quiz.py</b> --run</div>
+    <div class="brand"><span class="py">Py</span> اختبار أساسيات بايثون</div>
+  </div>
+
+  <!-- ════════ 1) INSTRUCTIONS ════════ -->
+  <section id="screen-intro" class="card">
+    <div class="eyebrow">// التعليمات</div>
+    <h1>اختبار أساسيات لغة بايثون</h1>
+    <p class="sub">اقرأ التعليمات بعناية قبل البدء. الاختبار يقيس فهمك لأساسيات Python ويصدر لك تقريراً ذكياً عن مستواك.</p>
+
+    <ul class="rules">
+      <li><span class="ico">٢٠</span><div><b>عشرون سؤالاً اختيار من متعدد</b><span>أربعة خيارات لكل سؤال، إجابة صحيحة واحدة فقط.</span></div></li>
+      <li><span class="ico gold">⏱</span><div><b>المدة: ١٥ دقيقة</b><span>يبدأ العد التنازلي فور الدخول، ويُسلَّم الاختبار تلقائياً عند انتهاء الوقت.</span></div></li>
+      <li><span class="ico blue">⚡</span><div><b>تغذية راجعة فورية</b><span>تعزيز عند الإجابة الصحيحة، وتصحيح مع شرح مختصر عند الخطأ. تُقفل الإجابة بعد اختيارها.</span></div></li>
+      <li><span class="ico">🧠</span><div><b>تقرير ذكي بالذكاء الاصطناعي</b><span>في النهاية تحصل على تحليل لمستواك ونقاط القوة والتطوير.</span></div></li>
+      <li><span class="ico blue">⤓</span><div><b>طباعة أو تنزيل التقرير</b><span>احفظ تقريرك كملف PDF أو اطبعه مباشرة.</span></div></li>
+      <li><span class="ico gold">✉</span><div><b>نتيجة عبر البريد</b><span>تُحفظ النتيجة في قاعدة البيانات وتُرسل نسخة إلى بريدك.</span></div></li>
+    </ul>
+
+    <div class="btn-row">
+      <span class="status-line" id="cfg-note"></span>
+      <button class="btn btn-primary" onclick="goLogin()">ابدأ التسجيل ←</button>
+    </div>
+  </section>
+
+  <!-- ════════ 2) LOGIN ════════ -->
+  <section id="screen-login" class="card hidden">
+    <div class="eyebrow">// تسجيل الدخول</div>
+    <h1>بياناتك</h1>
+    <p class="sub">أدخل اسمك وبريدك لبدء الاختبار. سيظهر اسمك أعلى الشاشة وتُرسل نتيجتك إلى بريدك.</p>
+
+    <div class="field">
+      <label>الاسم الكامل</label>
+      <input id="in-name" type="text" placeholder="مثال: إبراهيم العلوي" autocomplete="name" />
+    </div>
+    <div class="field">
+      <label>البريد الإلكتروني</label>
+      <input id="in-email" type="email" placeholder="name@example.com" dir="ltr" autocomplete="email" />
+    </div>
+    <div class="field">
+      <label>الجهة / المؤسسة (اختياري)</label>
+      <input id="in-org" type="text" placeholder="مثال: هيئة المشاريع والمناقصات والمحتوى المحلي" />
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="show('screen-intro')">→ رجوع</button>
+      <button class="btn btn-primary" onclick="startQuiz()">دخول الاختبار وبدء الوقت ←</button>
+    </div>
+    <p class="status-line" id="login-err"></p>
+  </section>
+
+  <!-- ════════ 3) QUIZ ════════ -->
+  <section id="screen-quiz" class="hidden">
+    <div class="hud no-print">
+      <div class="who"><span class="av" id="hud-av">؟</span><span id="hud-name">المستخدم</span></div>
+      <div class="chip"><span class="lbl">التقدّم</span><span id="hud-progress">0 / 20</span></div>
+      <div class="chip"><span class="lbl">المُجاب</span><span id="hud-answered">0</span></div>
+      <div class="chip timer" id="hud-timer">15:00</div>
+    </div>
+    <div class="pbar"><i id="pbar-fill"></i></div>
+
+    <div class="card">
+      <div class="qnum" id="q-num">Q1 / 20</div>
+      <div class="qtext" id="q-text"></div>
+      <div id="q-code-wrap" class="code hidden"><span id="q-code"></span></div>
+      <div class="opts" id="q-opts"></div>
+
+      <div id="q-feedback" class="feedback hidden"></div>
+
+      <div class="btn-row" style="margin-top:24px">
+        <button class="btn btn-ghost" id="btn-prev" onclick="prevQ()">→ السابق</button>
+        <button class="btn btn-primary" id="btn-next" onclick="nextQ()">التالي ←</button>
+      </div>
+    </div>
+    <p class="center" style="margin-top:14px"><button class="btn btn-gold no-print" onclick="confirmFinish()">إنهاء وتسليم الاختبار</button></p>
+  </section>
+
+  <!-- ════════ 4) RESULT + REPORT ════════ -->
+  <section id="screen-result" class="hidden">
+    <div class="report-area card" id="report-area">
+      <div class="eyebrow">// التقرير النهائي</div>
+      <div class="score-hero">
+        <div class="ring">
+          <svg width="140" height="140">
+            <circle cx="70" cy="70" r="60" fill="none" stroke="#243150" stroke-width="12"/>
+            <circle id="ring-fg" cx="70" cy="70" r="60" fill="none" stroke="#22c98b" stroke-width="12"
+              stroke-linecap="round" stroke-dasharray="377" stroke-dashoffset="377"/>
+          </svg>
+          <div class="val"><b id="res-pct">0%</b><span>النتيجة</span></div>
+        </div>
+        <div class="score-meta">
+          <div class="level-badge" id="res-badge">—</div>
+          <h2 style="margin-bottom:4px" id="res-name">—</h2>
+          <p class="sub" style="margin:0" id="res-sub">—</p>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat"><b id="res-correct">0</b><span>إجابات صحيحة</span></div>
+        <div class="stat"><b id="res-wrong">0</b><span>إجابات خاطئة</span></div>
+        <div class="stat"><b id="res-time" class="mono">0:00</b><span>الزمن المستغرق</span></div>
+      </div>
+
+      <span class="ai-tag">✦ تحليل مُولّد بالذكاء الاصطناعي</span>
+      <div class="report-box">
+        <h3>تقرير مستواك</h3>
+        <div id="ai-report">جارٍ إعداد التقرير…</div>
+      </div>
+    </div>
+
+    <div class="btn-row no-print" style="margin-top:18px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="window.print()">⎙ طباعة التقرير</button>
+        <button class="btn btn-gold" id="btn-pdf" onclick="downloadPDF()">⤓ تنزيل PDF</button>
+      </div>
+      <button class="btn btn-ghost" onclick="reviewAnswers()" id="btn-review">مراجعة الإجابات</button>
+    </div>
+    <p class="status-line" id="save-status"></p>
+
+    <!-- answer review injected here -->
+    <div id="review-area" class="hidden" style="margin-top:22px"></div>
+
+    <p class="center" style="margin-top:20px"><button class="btn btn-ghost no-print" onclick="location.reload()">↺ اختبار جديد</button></p>
+  </section>
+
+  <div class="foot no-print">Python Basics Quiz · RTL · Supabase</div>
+</div>
+
+<!-- libs for PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   CONFIG — عدّل هنا فقط
+   ══════════════════════════════════════════════════════════ */
+const CONFIG = {
+  SUPABASE_URL:      'https://ajgtatisurcpygzernsy.supabase.co',   // مشروع Training test
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqZ3RhdGlzdXJjcHlnemVybnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyMjU5MzYsImV4cCI6MjA4NjgwMTkzNn0.406FuiQy4t5g4f_bbvBoK5gisVrDQD_u-s_igJwebQM',
+  SUPABASE_TABLE:    'quiz_results',
+  FORMSUBMIT_EMAIL:  'iks.alalawi@gmail.com',              // بريد استقبال النتائج
+  SEND_EMAIL: true,                                        // تشغيل/إيقاف البريد
+  DURATION_MIN: 15,
+};
+
+/* ══════════════════════════════════════════════════════════
+   QUESTIONS — 20 سؤالاً (c = رقم الإجابة الصحيحة 0..3)
+   code = مقطع برمجي اختياري ، mono = خيارات برمجية
+   ══════════════════════════════════════════════════════════ */
+const QUESTIONS = [
+  {q:"ما الكلمة المفتاحية المستخدمة لتعريف دالة في بايثون؟", o:["def","function","func","define"], c:0, mono:true,
+   e:"الكلمة المحجوزة لتعريف الدوال في بايثون هي def."},
+  {q:"ما نوع البيانات للمتغير في الكود التالي؟", code:"x = 5", o:["int","float","str","bool"], c:0, mono:true,
+   e:"الأعداد الصحيحة بلا فاصلة عشرية نوعها int."},
+  {q:"أي رمز يُستخدم لكتابة تعليق في بايثون؟", o:["//","#","/* */","--"], c:1, mono:true,
+   e:"يبدأ التعليق في بايثون بالرمز # وحتى نهاية السطر."},
+  {q:"ما ناتج تنفيذ الكود التالي؟", code:"print(2 ** 3)", o:["6","8","9","23"], c:1, mono:true,
+   e:"العامل ** هو الأُس: أي 2 مرفوعة للأس 3 = 8."},
+  {q:"كيف تُنشئ قائمة (list) فارغة؟", o:["{}","()","[]","<>"], c:2, mono:true,
+   e:"القوائم تُنشأ بالأقواس المربعة []؛ أما {} فللقواميس و() للـ tuple."},
+  {q:"ما ناتج الكود التالي؟", code:'print(len("Oman"))', o:["3","4","5","خطأ"], c:1, mono:false,
+   e:"الدالة len تُرجع عدد الأحرف، و\"Oman\" أربعة أحرف."},
+  {q:"أي نوع بيانات غير قابل للتغيير (immutable)؟", o:["list","dict","tuple","set"], c:2, mono:true,
+   e:"الـ tuple غير قابل للتغيير بعد إنشائه، بعكس list و dict و set."},
+  {q:"ما ناتج عملية القسمة الصحيحة التالية؟", code:"print(10 // 3)", o:["3","3.33","4","1"], c:0, mono:false,
+   e:"العامل // قسمة صحيحة تُهمل الكسر، فيكون الناتج 3."},
+  {q:"كيف تحوّل النص \"5\" إلى عدد صحيح؟", o:['int("5")','str(5)','float("5")','num("5")'], c:0, mono:true,
+   e:"الدالة int() تحوّل النص إلى عدد صحيح."},
+  {q:"ما القيمة المنطقية الناتجة؟", code:"print(bool(0))", o:["True","False","0","None"], c:1, mono:true,
+   e:"الصفر قيمته المنطقية False، وأي رقم آخر True."},
+  {q:"أي دالة تُستخدم لقراءة إدخال المستخدم من لوحة المفاتيح؟", o:["input()","read()","get()","scan()"], c:0, mono:true,
+   e:"الدالة input() تقرأ ما يكتبه المستخدم وتُرجعه كنص."},
+  {q:"ما ناتج الكود التالي؟", code:'print("Py" + "thon")', o:["Py thon","Python","Py+thon","خطأ"], c:1, mono:false,
+   e:"العامل + يدمج النصوص (concatenation) بلا مسافة فينتج Python."},
+  {q:"كيف تصل إلى أول عنصر في القائمة my_list؟", o:["my_list[1]","my_list[0]","my_list(0)","first(my_list)"], c:1, mono:true,
+   e:"الفهرسة في بايثون تبدأ من 0، فأول عنصر هو my_list[0]."},
+  {q:"ما الكلمة المفتاحية للحلقة التكرارية المعتمدة على عداد/تسلسل؟", o:["while","loop","for","repeat"], c:2, mono:true,
+   e:"تُستخدم for للتكرار على تسلسل أو مدى، أما while فتعتمد على شرط."},
+  {q:"ما ناتج الكود التالي؟", code:"print(type(3.14))", o:["<class 'int'>","<class 'float'>","<class 'str'>","float"], c:1, mono:true,
+   e:"الأعداد ذات الفاصلة العشرية نوعها float."},
+  {q:"أي عامل يُستخدم للمقارنة (المساواة) وليس الإسناد؟", o:["=","==","=>",":="], c:1, mono:true,
+   e:"العامل == للمقارنة، أما = فللإسناد (وضع قيمة في متغير)."},
+  {q:"ما ناتج الكود التالي؟", code:"print(list(range(3)))", o:["[1, 2, 3]","[0, 1, 2]","[0, 1, 2, 3]","[3]"], c:1, mono:true,
+   e:"الدالة range(3) تولّد 0 و1 و2 وتتوقف قبل 3."},
+  {q:"أيٌّ مما يلي يُعرّف قاموساً (dictionary) صحيحاً؟", o:["{1, 2, 3}",'["a", "b"]','{"a": 1}',"(1, 2)"], c:2, mono:true,
+   e:"القاموس أزواج مفتاح:قيمة داخل {}، مثل {\"a\": 1}."},
+  {q:"ما ناتج العملية المنطقية التالية؟", code:"print(3 > 2 and 5 < 1)", o:["True","False","خطأ","None"], c:1, mono:false,
+   e:"3>2 صحيحة لكن 5<1 خاطئة، والعامل and يتطلب صحة الطرفين فيكون الناتج False."},
+  {q:"أي دالة تطبع المخرجات على الشاشة؟", o:["echo()","print()","output()","show()"], c:1, mono:true,
+   e:"الدالة print() تطبع المخرجات على الشاشة."},
+];
+
+// عبارات تعزيز عند الإجابة الصحيحة
+const PRAISE = ["أحسنت! إجابة صحيحة 🎯","ممتاز! استمر هكذا ✨","رائع، إجابتك دقيقة ✅","بالضبط! فهمٌ سليم 👏","إجابة موفّقة 💡","عظيم! أصبت 🌟"];
+
+/* ══════════════════════════════════════════════════════════
+   STATE
+   ══════════════════════════════════════════════════════════ */
+let user = {name:'', email:'', org:''};
+let answers = new Array(QUESTIONS.length).fill(null);
+let current = 0;
+let timeLeft = CONFIG.DURATION_MIN * 60;
+let timerId = null;
+let startedAt = null;
+let finished = false;
+
+/* ── screen helpers ── */
+function show(id){
+  ['screen-intro','screen-login','screen-quiz','screen-result'].forEach(s=>{
+    document.getElementById(s).classList.toggle('hidden', s!==id);
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function goLogin(){ show('screen-login'); document.getElementById('in-name').focus(); }
+
+/* config note */
+(function(){
+  const note = document.getElementById('cfg-note');
+  const dbOk = !CONFIG.SUPABASE_URL.includes('YOUR_PROJECT');
+  const mailOk = !CONFIG.FORMSUBMIT_EMAIL.includes('example.com');
+  if(!dbOk || !mailOk){
+    note.textContent = '⚠ لم تُضبط إعدادات قاعدة البيانات/البريد بعد — يعمل الاختبار محلياً.';
+  }
+})();
+
+/* ── start quiz ── */
+function startQuiz(){
+  const name = document.getElementById('in-name').value.trim();
+  const email = document.getElementById('in-email').value.trim();
+  const err = document.getElementById('login-err');
+  if(name.length < 2){ err.textContent='الرجاء إدخال الاسم.'; return; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ err.textContent='الرجاء إدخال بريد إلكتروني صحيح.'; return; }
+  err.textContent='';
+  user = {name, email, org:document.getElementById('in-org').value.trim()};
+
+  document.getElementById('hud-name').textContent = name;
+  document.getElementById('hud-av').textContent = name.trim().charAt(0);
+
+  startedAt = Date.now();
+  show('screen-quiz');
+  renderQ();
+  startTimer();
+}
+
+/* ── timer ── */
+function startTimer(){
+  updateTimer();
+  timerId = setInterval(()=>{
+    timeLeft--;
+    updateTimer();
+    if(timeLeft<=0){ clearInterval(timerId); finishQuiz(true); }
+  },1000);
+}
+function updateTimer(){
+  const m=Math.floor(timeLeft/60), s=timeLeft%60;
+  const el=document.getElementById('hud-timer');
+  el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  el.classList.toggle('warn', timeLeft<=60);
+}
+
+/* ── render question ── */
+function renderQ(){
+  const Q = QUESTIONS[current];
+  const answered = answers[current] !== null;
+  document.getElementById('q-num').textContent = `Q${current+1} / ${QUESTIONS.length}`;
+  document.getElementById('q-text').textContent = Q.q;
+
+  const codeWrap = document.getElementById('q-code-wrap');
+  if(Q.code){ codeWrap.classList.remove('hidden'); document.getElementById('q-code').textContent = Q.code; }
+  else codeWrap.classList.add('hidden');
+
+  const box = document.getElementById('q-opts');
+  box.innerHTML = '';
+  const keys = ['A','B','C','D'];
+  Q.o.forEach((opt,i)=>{
+    const div = document.createElement('div');
+    let cls = 'opt';
+    if(answered){
+      cls += ' disabled';
+      if(i===Q.c) cls += ' correct';                       // الصحيحة دائماً خضراء بعد الإجابة
+      else if(i===answers[current]) cls += ' wrong';       // اختياره الخاطئ بالأحمر
+      else cls += ' faded';
+    } else {
+      div.onclick = ()=>selectOpt(i);
+    }
+    div.className = cls;
+    div.innerHTML = `<span class="key">${keys[i]}</span><span class="otext ${Q.mono?'mono':''}"></span>`;
+    div.querySelector('.otext').textContent = opt;
+    box.appendChild(div);
+  });
+
+  // التغذية الراجعة
+  const fb = document.getElementById('q-feedback');
+  if(answered){ showFeedback(Q, answers[current]); }
+  else { fb.className='feedback hidden'; fb.innerHTML=''; }
+
+  document.getElementById('btn-prev').style.visibility = current===0 ? 'hidden':'visible';
+  const nextBtn = document.getElementById('btn-next');
+  nextBtn.textContent = current===QUESTIONS.length-1 ? 'إنهاء وتسليم ←' : 'التالي ←';
+  nextBtn.disabled = !answered;                            // يجب الإجابة لرؤية التغذية ثم المتابعة
+  updateHUD();
+}
+
+function selectOpt(i){
+  if(answers[current] !== null) return;                    // مقفل بعد أول اختيار
+  answers[current] = i;
+  renderQ();
+}
+
+function showFeedback(Q, picked){
+  const fb = document.getElementById('q-feedback');
+  const correct = picked === Q.c;
+  const keys = ['A','B','C','D'];
+  if(correct){
+    const praise = PRAISE[Math.floor(Math.random()*PRAISE.length)];
+    fb.className = 'feedback ok';
+    fb.innerHTML = `<div class="head">✓ ${praise}</div><div class="exp">${escapeHtml(Q.e)}</div>`;
+  } else {
+    fb.className = 'feedback no';
+    fb.innerHTML = `<div class="head">✕ ليست صحيحة — إليك التصحيح</div>
+      <div class="exp">الإجابة الصحيحة هي <b>${keys[Q.c]}) ${escapeHtml(Q.o[Q.c])}</b>.<br>${escapeHtml(Q.e)}</div>`;
+  }
+}
+function updateHUD(){
+  const answered = answers.filter(a=>a!==null).length;
+  document.getElementById('hud-progress').textContent = `${current+1} / ${QUESTIONS.length}`;
+  document.getElementById('hud-answered').textContent = `${answered} / ${QUESTIONS.length}`;
+  document.getElementById('pbar-fill').style.width = ((current+1)/QUESTIONS.length*100)+'%';
+}
+function nextQ(){ if(current<QUESTIONS.length-1){ current++; renderQ(); } else confirmFinish(); }
+function prevQ(){ if(current>0){ current--; renderQ(); } }
+
+function confirmFinish(){
+  const answered = answers.filter(a=>a!==null).length;
+  const msg = answered<QUESTIONS.length
+    ? `لديك ${QUESTIONS.length-answered} سؤالاً دون إجابة. هل تريد التسليم الآن؟`
+    : 'هل تريد تسليم الاختبار؟';
+  if(confirm(msg)) finishQuiz(false);
+}
+
+/* ══════════════════════════════════════════════════════════
+   FINISH + SCORING
+   ══════════════════════════════════════════════════════════ */
+function finishQuiz(timedOut){
+  if(finished) return;
+  finished = true;
+  clearInterval(timerId);
+
+  let correct=0;
+  answers.forEach((a,i)=>{ if(a===QUESTIONS[i].c) correct++; });
+  const total = QUESTIONS.length;
+  const pct = Math.round(correct/total*100);
+  const timeTaken = Math.round((Date.now()-startedAt)/1000);
+  const lvl = getLevel(pct);
+
+  const result = {correct, total, pct, timeTaken, level:lvl.name};
+  show('screen-result');
+  renderResult(result, lvl, timedOut);
+  generateAIReport(result, lvl);          // الذكاء الاصطناعي
+  saveToSupabase(result, lvl);            // قاعدة البيانات
+  sendEmail(result, lvl);                 // البريد
+}
+
+function getLevel(pct){
+  if(pct>=90) return {name:'متقدّم — Advanced', color:'#22c98b', bg:'rgba(34,201,139,.15)', sub:'إتقان ممتاز لأساسيات بايثون.'};
+  if(pct>=70) return {name:'جيّد — Intermediate', color:'#4b8bf4', bg:'rgba(75,139,244,.15)', sub:'فهم قوي مع مجال بسيط للتطوير.'};
+  if(pct>=50) return {name:'مبتدئ متقدّم — Beginner+', color:'#f6c453', bg:'rgba(246,196,83,.15)', sub:'أساس جيد يحتاج إلى تعزيز.'};
+  return {name:'مبتدئ — Beginner', color:'#ff6b6b', bg:'rgba(255,107,107,.15)', sub:'بداية الطريق — التركيز على الأساسيات.'};
+}
+
+function renderResult(r, lvl, timedOut){
+  document.getElementById('res-pct').textContent = r.pct+'%';
+  document.getElementById('res-correct').textContent = r.correct;
+  document.getElementById('res-wrong').textContent = r.total - r.correct;
+  const m=Math.floor(r.timeTaken/60), s=r.timeTaken%60;
+  document.getElementById('res-time').textContent = `${m}:${String(s).padStart(2,'0')}`;
+
+  const badge = document.getElementById('res-badge');
+  badge.textContent = lvl.name;
+  badge.style.color = lvl.color; badge.style.background = lvl.bg;
+
+  document.getElementById('res-name').textContent = user.name;
+  document.getElementById('res-sub').textContent =
+    (timedOut ? 'انتهى الوقت — ' : '') + lvl.sub;
+
+  // animate ring
+  const circ = 377, off = circ - (r.pct/100)*circ;
+  const ring = document.getElementById('ring-fg');
+  ring.style.stroke = lvl.color;
+  setTimeout(()=>{ ring.style.transition='stroke-dashoffset 1s ease'; ring.style.strokeDashoffset=off; },200);
+}
+
+/* ══════════════════════════════════════════════════════════
+   AI REPORT (Claude API داخل العرض) مع بديل محلي
+   ══════════════════════════════════════════════════════════ */
+async function generateAIReport(r, lvl){
+  const el = document.getElementById('ai-report');
+  const topics = QUESTIONS.map((Q,i)=>({t:Q.q, ok: answers[i]===Q.c}));
+  const wrong = topics.filter(x=>!x.ok).map(x=>x.t);
+
+  const prompt = `أنت مدرّب بايثون. اكتب تقريراً تحفيزياً موجزاً بالعربية (120-160 كلمة) لمتدرّب اسمه "${user.name}".
+نتيجته: ${r.correct}/${r.total} (${r.pct}%) — المستوى: ${lvl.name}. الزمن: ${Math.round(r.timeTaken/60)} دقيقة.
+المفاهيم التي أخطأ فيها: ${wrong.length? wrong.join(' | ') : 'لا يوجد'}.
+اكتب: (1) جملة تقييم لمستواه، (2) نقاط القوة، (3) المفاهيم التي يحتاج مراجعتها بالتحديد، (4) توصية عملية بمصدر/خطوة تالية. بأسلوب مشجّع ومباشر، دون عناوين Markdown.`;
+
+  try{
+    const res = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:1000,
+        messages:[{role:"user", content:prompt}] })
+    });
+    if(!res.ok) throw new Error('api');
+    const data = await res.json();
+    const text = data.content.filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+    el.textContent = text || fallbackReport(r,lvl,wrong);
+  }catch(e){
+    el.textContent = fallbackReport(r,lvl,wrong);
+  }
+  window._aiReport = el.textContent;
+}
+
+function fallbackReport(r,lvl,wrong){
+  let t = `${user.name}، حصلت على ${r.correct} من ${r.total} (${r.pct}%)، ويضعك ذلك في مستوى «${lvl.name}». `;
+  if(r.pct>=90) t+= 'أداؤك ممتاز ويدل على إتقان واضح لأساسيات بايثون: أنواع البيانات، الدوال، والعمليات المنطقية. ';
+  else if(r.pct>=70) t+= 'لديك أساس قوي وفهم جيد لمعظم المفاهيم الأساسية، مع وجود تفاصيل بسيطة تستحق المراجعة. ';
+  else if(r.pct>=50) t+= 'لديك أساس مقبول، لكن بعض المفاهيم الجوهرية تحتاج إلى تثبيت أكبر عبر التطبيق العملي. ';
+  else t+= 'أنت في بداية الطريق، والأهم الآن هو بناء قاعدة صلبة من خلال التمرين المستمر. ';
+  if(wrong.length){
+    t+= '\n\nالمفاهيم التي يُنصح بمراجعتها: ' + wrong.slice(0,5).join('، ') + '.';
+  } else {
+    t+= '\n\nلم تُخطئ في أي سؤال — أداء مكتمل! جرّب الانتقال إلى مواضيع أعمق مثل المكتبات والكلاسات.';
+  }
+  t+= '\n\nالخطوة التالية المقترحة: حلّ تمارين عملية على كل مفهوم أخطأت فيه، ثم اكتب برنامجاً صغيراً يجمعها معاً (آلة حاسبة أو قائمة مهام) لترسيخ الفهم بالتطبيق.';
+  return t;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SUPABASE
+   ══════════════════════════════════════════════════════════ */
+async function saveToSupabase(r, lvl){
+  const status = document.getElementById('save-status');
+  if(CONFIG.SUPABASE_URL.includes('YOUR_PROJECT')){
+    status.textContent = '◷ لم تُضبط قاعدة البيانات — لم تُحفظ النتيجة.';
+    return;
+  }
+  // انتظر تقرير الـ AI لحظة قبل الحفظ
+  await new Promise(res=>setTimeout(res,1200));
+  try{
+    const res = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.SUPABASE_TABLE}`,{
+      method:'POST',
+      headers:{
+        'apikey':CONFIG.SUPABASE_ANON_KEY,
+        'Authorization':`Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+        'Content-Type':'application/json',
+        'Prefer':'return=minimal'
+      },
+      body:JSON.stringify({
+        full_name:user.name, email:user.email,
+        score:r.correct, total:r.total, percentage:r.pct,
+        level:lvl.name, time_taken:r.timeTaken,
+        answers:{org:user.org, picked:answers, correct:QUESTIONS.map(q=>q.c)},
+        ai_report: window._aiReport || ''
+      })
+    });
+    status.textContent = res.ok ? '✓ تم حفظ نتيجتك في قاعدة البيانات.' : '✕ تعذّر الحفظ في قاعدة البيانات.';
+  }catch(e){ status.textContent='✕ خطأ في الاتصال بقاعدة البيانات.'; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   EMAIL (FormSubmit AJAX) — للمشرف + نسخة للمستخدم (cc)
+   ══════════════════════════════════════════════════════════ */
+async function sendEmail(r, lvl){
+  if(!CONFIG.SEND_EMAIL || CONFIG.FORMSUBMIT_EMAIL.includes('example.com')) return;
+  await new Promise(res=>setTimeout(res,1500)); // انتظر تقرير الـAI
+  try{
+    await fetch(`https://formsubmit.co/ajax/${CONFIG.FORMSUBMIT_EMAIL}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({
+        _subject:`نتيجة اختبار بايثون — ${user.name} (${r.pct}%)`,
+        _cc:user.email,
+        "الاسم":user.name, "البريد":user.email, "الجهة":user.org||'-',
+        "النتيجة":`${r.correct}/${r.total} (${r.pct}%)`,
+        "المستوى":lvl.name,
+        "الزمن":`${Math.round(r.timeTaken/60)} دقيقة`,
+        "التقرير": window._aiReport || ''
+      })
+    });
+  }catch(e){ /* صامت */ }
+}
+
+/* ══════════════════════════════════════════════════════════
+   PDF
+   ══════════════════════════════════════════════════════════ */
+async function downloadPDF(){
+  const btn = document.getElementById('btn-pdf');
+  const old = btn.innerHTML;
+  btn.innerHTML = '<span class="loader"></span> جارٍ التجهيز…'; btn.disabled=true;
+  try{
+    const node = document.getElementById('report-area');
+    const canvas = await html2canvas(node,{scale:2, backgroundColor:'#0b1020'});
+    const img = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p','mm','a4');
+    const w = 210, h = canvas.height*w/canvas.width;
+    pdf.addImage(img,'PNG',0,0,w,Math.min(h,297));
+    if(h>297){ // صفحة ثانية إن لزم
+      let pos = -297;
+      while(pos > -h){ pdf.addPage(); pdf.addImage(img,'PNG',0,pos,w,h); pos -= 297; }
+    }
+    pdf.save(`تقرير_بايثون_${user.name}.pdf`);
+  }catch(e){ alert('تعذّر إنشاء PDF، يمكنك استخدام زر الطباعة بدلاً منه.'); }
+  btn.innerHTML=old; btn.disabled=false;
+}
+
+/* ══════════════════════════════════════════════════════════
+   REVIEW ANSWERS
+   ══════════════════════════════════════════════════════════ */
+function reviewAnswers(){
+  const area = document.getElementById('review-area');
+  const btn = document.getElementById('btn-review');
+  if(!area.classList.contains('hidden')){ area.classList.add('hidden'); btn.textContent='مراجعة الإجابات'; return; }
+  btn.textContent='إخفاء المراجعة';
+  const keys=['A','B','C','D'];
+  let html='<div class="card"><div class="eyebrow">// مراجعة الإجابات</div>';
+  QUESTIONS.forEach((Q,i)=>{
+    const picked = answers[i];
+    html += `<div style="margin:18px 0;padding-bottom:14px;border-bottom:1px solid var(--line-soft)">
+      <div class="qnum">Q${i+1} ${picked===Q.c?'✓':'✕'}</div>
+      <div class="qtext" style="font-size:16px">${escapeHtml(Q.q)}</div>`;
+    if(Q.code) html+=`<div class="code">${escapeHtml(Q.code)}</div>`;
+    html+='<div class="opts">';
+    Q.o.forEach((opt,j)=>{
+      let cls='opt';
+      if(j===Q.c) cls+=' correct';
+      else if(j===picked) cls+=' wrong';
+      html+=`<div class="${cls}"><span class="key">${keys[j]}</span><span class="otext ${Q.mono?'mono':''}">${escapeHtml(opt)}</span></div>`;
+    });
+    html+='</div></div>';
+  });
+  html+='</div>';
+  area.innerHTML=html;
+  area.classList.remove('hidden');
+  area.scrollIntoView({behavior:'smooth'});
+}
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* prevent accidental exit during quiz */
+window.addEventListener('beforeunload', e=>{
+  if(startedAt && !finished){ e.preventDefault(); e.returnValue=''; }
+});
+</script>
+</body>
+</html>
